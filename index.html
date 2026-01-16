@@ -6,67 +6,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-  body {
-    margin: 0;
-    background: black;
-    color: white;
-    font-family: Arial, sans-serif;
-    text-align: center;
-  }
-
-  h1 {
-    margin: 8px 0;
-    font-size: 22px;
-  }
-
-  #gameContainer {
-    display: none;
-    max-width: 420px;
-    margin: auto;
-  }
-
-  canvas {
-    width: 100%;
-    height: auto;
-    background: black;
-    border: 3px solid #1e90ff;
-  }
-
-  #score {
-    margin: 6px;
-    font-size: 16px;
-  }
-
-  #message {
-    height: 20px;
-    font-size: 14px;
-    color: gold;
-  }
-
-  #startBtn {
-    padding: 12px 24px;
-    font-size: 18px;
-    background: gold;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-
-  .ctrlRow {
-    display: flex;
-    justify-content: center;
-  }
-
-  .ctrlBtn {
-    width: 60px;
-    height: 60px;
-    margin: 4px;
-    font-size: 22px;
-    border-radius: 10px;
-    border: none;
-    background: #333;
-    color: white;
-  }
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+h1 { margin: 8px 0; font-size: 22px; }
+#gameContainer { display:none; max-width:420px; margin:auto; }
+canvas { width:100%; height:auto; background:black; border:3px solid #1e90ff; }
+#score { margin:6px; font-size:16px; }
+#message { height:20px; color:gold; font-size:14px; }
+#startBtn {
+  padding:12px 24px; font-size:18px;
+  background:gold; border:none; border-radius:8px; cursor:pointer;
+}
+.ctrlRow { display:flex; justify-content:center; }
+.ctrlBtn {
+  width:60px; height:60px; margin:4px;
+  font-size:22px; border-radius:10px;
+  border:none; background:#333; color:white;
+}
 </style>
 </head>
 
@@ -81,16 +42,12 @@
   <canvas id="game"></canvas>
 
   <div>
-    <div class="ctrlRow">
-      <button class="ctrlBtn" onclick="movePacman(0,-1)">⬆️</button>
-    </div>
+    <div class="ctrlRow"><button class="ctrlBtn" onclick="movePacman(0,-1)">⬆️</button></div>
     <div class="ctrlRow">
       <button class="ctrlBtn" onclick="movePacman(-1,0)">⬅️</button>
       <button class="ctrlBtn" onclick="movePacman(1,0)">➡️</button>
     </div>
-    <div class="ctrlRow">
-      <button class="ctrlBtn" onclick="movePacman(0,1)">⬇️</button>
-    </div>
+    <div class="ctrlRow"><button class="ctrlBtn" onclick="movePacman(0,1)">⬇️</button></div>
   </div>
 </div>
 
@@ -98,17 +55,16 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const TILE = 20;
-const ROWS = 21;
-const COLS = 21;
+const TILE = 20, ROWS = 21, COLS = 21;
 canvas.width = COLS * TILE;
 canvas.height = ROWS * TILE;
 
-let score = 0;
 let mouthOpen = true;
+let score = 0;
 let powerTimer = 0;
+let gameActive = false;
 
-const maze = [
+const originalMaze = [
 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
 [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1],
@@ -132,134 +88,113 @@ const maze = [
 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-/* 0 = pellet
-   1 = wall
-   2 = microphone power-up
-*/
+let maze, pacman, ghosts;
 
-let pacman = { x: 1, y: 1, dir: "right" };
-
-let ghosts = [
-  { x: 10, y: 9, color: "red" },
-  { x: 9,  y: 10, color: "pink" },
-  { x: 11, y: 10, color: "cyan" },
-  { x: 10, y: 11, color: "orange" }
-];
-
-function showMessage(text) {
-  const m = document.getElementById("message");
-  m.innerText = text;
-  setTimeout(() => m.innerText = "", 2000);
+function resetGame(showMessage=true) {
+  maze = originalMaze.map(r => r.slice());
+  pacman = { x:1, y:1, dir:"right" };
+  ghosts = [
+    { x:10, y:9, color:"red", home:{x:10,y:9} },
+    { x:9,  y:10,color:"pink",home:{x:9,y:10} },
+    { x:11, y:10,color:"cyan",home:{x:11,y:10} },
+    { x:10, y:11,color:"orange",home:{x:10,y:11} }
+  ];
+  powerTimer = 0;
+  score = 0;
+  document.getElementById("score").innerText = "Score: 0";
+  if (showMessage) flashMessage("Ready!");
+  draw();
 }
 
-function movePacman(dx, dy) {
-  const nx = pacman.x + dx;
-  const ny = pacman.y + dy;
+function flashMessage(text) {
+  const m = document.getElementById("message");
+  m.innerText = text;
+  setTimeout(()=>m.innerText="",1500);
+}
 
-  if (maze[ny][nx] !== 1) {
-    pacman.x = nx;
-    pacman.y = ny;
+function movePacman(dx,dy){
+  if (!gameActive) return;
 
-    if (dx === 1) pacman.dir = "right";
-    if (dx === -1) pacman.dir = "left";
-    if (dy === -1) pacman.dir = "up";
-    if (dy === 1) pacman.dir = "down";
+  const nx=pacman.x+dx, ny=pacman.y+dy;
+  if (maze[ny][nx]!==1){
+    pacman.x=nx; pacman.y=ny;
+    pacman.dir = dx===1?"right":dx===-1?"left":dy===-1?"up":"down";
+    mouthOpen=!mouthOpen;
 
-    mouthOpen = !mouthOpen;
-
-    if (maze[ny][nx] === 0) {
-      score += 10;
+    if (maze[ny][nx]===0) score+=10;
+    if (maze[ny][nx]===2){
+      score+=50;
+      powerTimer=15;
+      flashMessage("🎤 Public Speaking Power!");
     }
 
-    if (maze[ny][nx] === 2) {
-      score += 50;
-      powerTimer = 15;
-      showMessage("🎤 Public Speaking Power!");
-    }
-
-    maze[ny][nx] = 3;
-    document.getElementById("score").innerText = "Score: " + score;
+    maze[ny][nx]=3;
+    document.getElementById("score").innerText="Score: "+score;
 
     moveGhosts();
+    checkCollisions();
     draw();
   }
 }
 
-function moveGhosts() {
-  ghosts.forEach(g => {
-    if (powerTimer > 0 && Math.random() < 0.5) return;
-
-    const dirs = [
-      {x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}
-    ];
-    const d = dirs[Math.floor(Math.random()*dirs.length)];
-    const nx = g.x + d.x;
-    const ny = g.y + d.y;
-
-    if (maze[ny][nx] !== 1) {
-      g.x = nx;
-      g.y = ny;
+function moveGhosts(){
+  ghosts.forEach(g=>{
+    if (powerTimer>0 && Math.random()<0.4) return;
+    const d=[[1,0],[-1,0],[0,1],[0,-1]][Math.floor(Math.random()*4)];
+    if (maze[g.y+d[1]][g.x+d[0]]!==1){
+      g.x+=d[0]; g.y+=d[1];
     }
   });
-
-  if (powerTimer > 0) powerTimer--;
+  if (powerTimer>0) powerTimer--;
 }
 
-function drawPacman() {
-  const cx = pacman.x*TILE + TILE/2;
-  const cy = pacman.y*TILE + TILE/2;
-  const r = TILE/2.2;
-  const m = mouthOpen ? 0.35 : 0.1;
+function checkCollisions(){
+  ghosts.forEach(g=>{
+    if (g.x===pacman.x && g.y===pacman.y){
+      if (powerTimer>0){
+        score+=100;
+        g.x=g.home.x; g.y=g.home.y;
+        flashMessage("👻 Anxiety Defeated!");
+      } else {
+        gameActive=false;
+        flashMessage("💀 Game Over");
+        setTimeout(()=>resetGame(false),1500);
+      }
+    }
+  });
+}
 
+function drawPacman(){
+  const cx=pacman.x*TILE+TILE/2, cy=pacman.y*TILE+TILE/2;
+  const r=TILE/2.2, m=mouthOpen?0.35:0.1;
   let s=0,e=Math.PI*2;
-  if (pacman.dir==="right"){s=m*Math.PI;e=(2-m)*Math.PI;}
-  if (pacman.dir==="left"){s=(1+m)*Math.PI;e=(1-m)*Math.PI;}
-  if (pacman.dir==="up"){s=(1.5+m)*Math.PI;e=(1.5-m)*Math.PI;}
-  if (pacman.dir==="down"){s=(0.5+m)*Math.PI;e=(0.5-m)*Math.PI;}
-
-  ctx.fillStyle = "yellow";
-  ctx.beginPath();
-  ctx.moveTo(cx,cy);
-  ctx.arc(cx,cy,r,s,e);
-  ctx.fill();
+  if(pacman.dir==="right"){s=m*Math.PI;e=(2-m)*Math.PI;}
+  if(pacman.dir==="left"){s=(1+m)*Math.PI;e=(1-m)*Math.PI;}
+  if(pacman.dir==="up"){s=(1.5+m)*Math.PI;e=(1.5-m)*Math.PI;}
+  if(pacman.dir==="down"){s=(0.5+m)*Math.PI;e=(0.5-m)*Math.PI;}
+  ctx.fillStyle="yellow";
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,s,e); ctx.fill();
 }
 
-function draw() {
+function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  for (let y=0;y<ROWS;y++) {
-    for (let x=0;x<COLS;x++) {
-      if (maze[y][x] === 1) {
-        ctx.fillStyle = "#1e90ff";
-        ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
-      }
-      if (maze[y][x] === 0) {
-        ctx.fillStyle = "white";
-        ctx.beginPath();
-        ctx.arc(x*TILE+TILE/2,y*TILE+TILE/2,3,0,7);
-        ctx.fill();
-      }
-      if (maze[y][x] === 2) {
-        ctx.font = "16px Arial";
-        ctx.fillText("🎤", x*TILE+2, y*TILE+16);
-      }
-    }
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    if(maze[y][x]===1){ctx.fillStyle="#1e90ff";ctx.fillRect(x*TILE,y*TILE,TILE,TILE);}
+    if(maze[y][x]===0){ctx.fillStyle="white";ctx.beginPath();ctx.arc(x*TILE+10,y*TILE+10,3,0,7);ctx.fill();}
+    if(maze[y][x]===2){ctx.font="16px Arial";ctx.fillText("🎤",x*TILE+2,y*TILE+16);}
   }
-
-  ghosts.forEach(g => {
-    ctx.fillStyle = powerTimer>0 ? "blue" : g.color;
-    ctx.beginPath();
-    ctx.arc(g.x*TILE+TILE/2,g.y*TILE+TILE/2,TILE/2.2,0,7);
-    ctx.fill();
+  ghosts.forEach(g=>{
+    ctx.fillStyle=powerTimer>0?"blue":g.color;
+    ctx.beginPath();ctx.arc(g.x*TILE+10,g.y*TILE+10,8,0,7);ctx.fill();
   });
-
   drawPacman();
 }
 
-document.getElementById("startBtn").onclick = () => {
-  document.getElementById("startBtn").style.display = "none";
-  document.getElementById("gameContainer").style.display = "block";
-  draw();
+document.getElementById("startBtn").onclick=()=>{
+  document.getElementById("startBtn").style.display="none";
+  document.getElementById("gameContainer").style.display="block";
+  gameActive=true;
+  resetGame();
 };
 </script>
 
