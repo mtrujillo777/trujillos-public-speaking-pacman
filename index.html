@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
 <title>Trujillo's Public Speaking Pac-Man</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 
 <style>
   body {
@@ -16,23 +16,33 @@
 
   h1 {
     margin: 10px 0;
+    font-size: 22px;
   }
 
-  #gameWrapper {
-    display: flex;
-    justify-content: center;
-    width: 100%;
+  #gameContainer {
+    display: none;
+    margin: auto;
+    max-width: 360px;
   }
 
   canvas {
     background: black;
-    border: 3px solid #1e90ff;
+    width: 100%;
+    height: auto;
+    touch-action: none;
+  }
+
+  #score {
+    margin: 8px;
+    font-size: 16px;
   }
 
   #startBtn {
-    margin: 10px;
-    padding: 12px 20px;
+    padding: 12px 24px;
     font-size: 18px;
+    background: gold;
+    border: none;
+    border-radius: 8px;
     cursor: pointer;
   }
 
@@ -40,42 +50,44 @@
     margin-top: 10px;
   }
 
-  .control-row {
+  .ctrlRow {
     display: flex;
     justify-content: center;
   }
 
-  .btn {
+  .ctrlBtn {
     width: 60px;
     height: 60px;
     margin: 5px;
-    font-size: 24px;
-    background: #1e90ff;
-    color: white;
-    border: none;
+    font-size: 22px;
     border-radius: 10px;
+    border: none;
+    background: #333;
+    color: white;
   }
 </style>
 </head>
 
 <body>
 
-<h1>🎤 Trujillo’s Public Speaking 🎤</h1>
-
+<h1>🎤 Trujillo's Public Speaking</h1>
 <button id="startBtn">Start Game</button>
 
-<div id="gameWrapper">
+<div id="gameContainer">
+  <div id="score">Score: 0</div>
   <canvas id="game"></canvas>
-</div>
 
-<div id="controls">
-  <div class="control-row">
-    <button class="btn" data-dir="up">⬆️</button>
-  </div>
-  <div class="control-row">
-    <button class="btn" data-dir="left">⬅️</button>
-    <button class="btn" data-dir="down">⬇️</button>
-    <button class="btn" data-dir="right">➡️</button>
+  <div id="controls">
+    <div class="ctrlRow">
+      <button class="ctrlBtn" onclick="movePacman(0,-1)">⬆️</button>
+    </div>
+    <div class="ctrlRow">
+      <button class="ctrlBtn" onclick="movePacman(-1,0)">⬅️</button>
+      <button class="ctrlBtn" onclick="movePacman(1,0)">➡️</button>
+    </div>
+    <div class="ctrlRow">
+      <button class="ctrlBtn" onclick="movePacman(0,1)">⬇️</button>
+    </div>
   </div>
 </div>
 
@@ -83,176 +95,110 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+const TILE = 20;
 const ROWS = 21;
 const COLS = 21;
-let TILE_SIZE = 20;
+canvas.width = COLS * TILE;
+canvas.height = ROWS * TILE;
 
-function resizeCanvas() {
-  const maxWidth = Math.min(window.innerWidth - 20, 420);
-  TILE_SIZE = Math.floor(maxWidth / COLS);
-  canvas.width = TILE_SIZE * COLS;
-  canvas.height = TILE_SIZE * ROWS;
-}
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
+let score = 0;
+let mouthOpen = true;
 
-/* 0 = pellet
-   1 = wall
-   2 = microphone (power pellet)
-*/
 const maze = [
 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-[1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1],
-[1,2,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1],
-[1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,0,1],
-[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1],
-[1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,1],
-[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1],
-[1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,0,1],
-[1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-[1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,0,1],
-[1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
-[1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
-[1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1],
-[1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,0,1],
-[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,2,1],
-[1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,1],
-[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-[1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1],
-[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,1,2,1,1,2,1,2,1,1,2,1,1,2,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,1,1,1,1,2,1,1,2,1,2,1,1,2,1,1,2,1,1,1,1],
+[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,1,1,1,1,1,1,1,2,1,2,1,1,2,1,1,1,1,1,1,1],
+[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,1,1,1,1,2,1,1,2,1,2,1,1,2,1,1,2,1,1,1,1],
+[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,1,1,1,1,2,1,2,1,1,2,1,1,1,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
 
-let pacman = { x: 1, y: 1 };
-let ghosts = [
-  { x: 19, y: 1 },
-  { x: 19, y: 19 }
-];
+let pacman = {x:1,y:1,dir:"right"};
+let ghosts = [{x:19,y:19},{x:1,y:19}];
 
-let gameRunning = false;
+function playSound() {
+  const a = new AudioContext();
+  const o = a.createOscillator();
+  o.frequency.value = 600;
+  o.connect(a.destination);
+  o.start();
+  setTimeout(()=>o.stop(),80);
+}
 
-function drawMaze() {
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      if (maze[r][c] === 1) {
-        ctx.fillStyle = "#1e90ff";
-        ctx.fillRect(c*TILE_SIZE, r*TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      }
-      if (maze[r][c] === 0) {
-        ctx.fillStyle = "white";
-        ctx.beginPath();
-        ctx.arc(
-          c*TILE_SIZE + TILE_SIZE/2,
-          r*TILE_SIZE + TILE_SIZE/2,
-          TILE_SIZE/6,
-          0,
-          Math.PI*2
-        );
-        ctx.fill();
-      }
-      if (maze[r][c] === 2) {
-        ctx.fillStyle = "gold";
-        ctx.beginPath();
-        ctx.arc(
-          c*TILE_SIZE + TILE_SIZE/2,
-          r*TILE_SIZE + TILE_SIZE/2,
-          TILE_SIZE/3,
-          0,
-          Math.PI*2
-        );
-        ctx.fill();
-      }
+function movePacman(dx,dy){
+  const nx=pacman.x+dx, ny=pacman.y+dy;
+  if(maze[ny][nx]!==1){
+    pacman.x=nx; pacman.y=ny;
+    pacman.dir = dx===1?"right":dx===-1?"left":dy===-1?"up":"down";
+    mouthOpen=!mouthOpen;
+    if(maze[ny][nx]===2){
+      score+=10;
+      document.getElementById("score").innerText="Score: "+score;
+      playSound();
     }
-  }
-}
-
-function drawPacman() {
-  ctx.fillStyle = "yellow";
-  ctx.beginPath();
-  ctx.arc(
-    pacman.x*TILE_SIZE + TILE_SIZE/2,
-    pacman.y*TILE_SIZE + TILE_SIZE/2,
-    TILE_SIZE/2.2,
-    0,
-    Math.PI*2
-  );
-  ctx.fill();
-}
-
-function drawGhosts() {
-  ctx.fillStyle = "red";
-  ghosts.forEach(g => {
-    ctx.beginPath();
-    ctx.arc(
-      g.x*TILE_SIZE + TILE_SIZE/2,
-      g.y*TILE_SIZE + TILE_SIZE/2,
-      TILE_SIZE/2.2,
-      0,
-      Math.PI*2
-    );
-    ctx.fill();
-  });
-}
-
-function movePacman(dx, dy) {
-  const nx = pacman.x + dx;
-  const ny = pacman.y + dy;
-  if (maze[ny][nx] !== 1) {
-    pacman.x = nx;
-    pacman.y = ny;
-    if (maze[ny][nx] !== 1) maze[ny][nx] = 3;
+    maze[ny][nx]=0;
     moveGhosts();
     draw();
   }
 }
 
-function moveGhosts() {
-  ghosts.forEach(g => {
-    const dirs = [
-      {x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}
-    ];
-    const d = dirs[Math.floor(Math.random()*dirs.length)];
-    const nx = g.x + d.x;
-    const ny = g.y + d.y;
-    if (maze[ny][nx] !== 1) {
-      g.x = nx;
-      g.y = ny;
+function moveGhosts(){
+  ghosts.forEach(g=>{
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+    const d=dirs[Math.floor(Math.random()*4)];
+    if(maze[g.y+d[1]][g.x+d[0]]!==1){
+      g.x+=d[0]; g.y+=d[1];
     }
   });
 }
 
-function draw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  drawMaze();
-  drawPacman();
-  drawGhosts();
+function drawPacman(){
+  const cx=pacman.x*TILE+TILE/2;
+  const cy=pacman.y*TILE+TILE/2;
+  const r=TILE/2;
+  let m=mouthOpen?0.35:0.1;
+  let s=0,e=Math.PI*2;
+  if(pacman.dir==="right"){s=m*Math.PI;e=(2-m)*Math.PI;}
+  if(pacman.dir==="left"){s=(1+m)*Math.PI;e=(1-m)*Math.PI;}
+  if(pacman.dir==="up"){s=(1.5+m)*Math.PI;e=(1.5-m)*Math.PI;}
+  if(pacman.dir==="down"){s=(0.5+m)*Math.PI;e=(0.5-m)*Math.PI;}
+  ctx.fillStyle="yellow";
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,s,e);ctx.fill();
 }
 
-document.addEventListener("keydown", e => {
-  if (!gameRunning) return;
-  if (e.key === "ArrowUp") movePacman(0,-1);
-  if (e.key === "ArrowDown") movePacman(0,1);
-  if (e.key === "ArrowLeft") movePacman(-1,0);
-  if (e.key === "ArrowRight") movePacman(1,0);
-});
-
-document.querySelectorAll(".btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    if (!gameRunning) return;
-    const d = btn.dataset.dir;
-    if (d === "up") movePacman(0,-1);
-    if (d === "down") movePacman(0,1);
-    if (d === "left") movePacman(-1,0);
-    if (d === "right") movePacman(1,0);
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  maze.forEach((row,y)=>row.forEach((c,x)=>{
+    if(c===1){ctx.fillStyle="blue";ctx.fillRect(x*TILE,y*TILE,TILE,TILE);}
+    if(c===2){ctx.fillStyle="white";ctx.beginPath();ctx.arc(x*TILE+TILE/2,y*TILE+TILE/2,3,0,7);ctx.fill();}
+  }));
+  ghosts.forEach(g=>{
+    ctx.fillStyle="red";
+    ctx.beginPath();ctx.arc(g.x*TILE+TILE/2,g.y*TILE+TILE/2,TILE/2,0,7);ctx.fill();
   });
-});
+  drawPacman();
+}
 
-document.getElementById("startBtn").onclick = () => {
-  gameRunning = true;
+document.getElementById("startBtn").onclick=()=>{
+  document.getElementById("startBtn").style.display="none";
+  document.getElementById("gameContainer").style.display="block";
   draw();
 };
 </script>
-
 </body>
 </html>
