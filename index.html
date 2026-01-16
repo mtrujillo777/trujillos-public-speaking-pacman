@@ -7,47 +7,97 @@
 
 <style>
 body {
-  margin: 0;
-  background: black;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
+  margin:0;
+  background:black;
+  color:white;
+  font-family:Arial,sans-serif;
+  text-align:center;
 }
-h1 { margin: 8px 0; font-size: 22px; }
+h1 { margin:6px 0; font-size:22px; }
+
 #gameContainer { display:none; max-width:420px; margin:auto; }
-canvas { width:100%; height:auto; background:black; border:3px solid #1e90ff; }
-#score { margin:6px; font-size:16px; }
-#message { height:20px; color:gold; font-size:14px; }
-#startBtn {
-  padding:12px 24px; font-size:18px;
-  background:gold; border:none; border-radius:8px; cursor:pointer;
+
+canvas {
+  width:100%;
+  height:auto;
+  background:black;
+  border:3px solid #1e90ff;
 }
+
+#topBar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:14px;
+  margin:6px;
+}
+
+#message {
+  color:gold;
+  min-height:20px;
+}
+
+button {
+  border:none;
+  border-radius:8px;
+  padding:6px 12px;
+  cursor:pointer;
+}
+
+#startBtn {
+  padding:14px 28px;
+  font-size:18px;
+  background:gold;
+}
+
+#controls {
+  margin-top:8px;
+}
+
 .ctrlRow { display:flex; justify-content:center; }
+
 .ctrlBtn {
-  width:60px; height:60px; margin:4px;
-  font-size:22px; border-radius:10px;
-  border:none; background:#333; color:white;
+  width:60px;
+  height:60px;
+  margin:4px;
+  font-size:22px;
+  background:#333;
+  color:white;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🎤 Trujillo’s Public Speaking 🎤</h1>
+<h1>🎤 Trujillo's Public Speaking</h1>
+
 <button id="startBtn">Start Game</button>
 
 <div id="gameContainer">
-  <div id="score">Score: 0</div>
+  <div id="topBar">
+    <div id="score">Score: 0</div>
+    <button id="soundBtn">🔊</button>
+  </div>
+
   <div id="message"></div>
+
   <canvas id="game"></canvas>
 
-  <div>
-    <div class="ctrlRow"><button class="ctrlBtn" onclick="movePacman(0,-1)">⬆️</button></div>
+  <button id="resetBtn" style="display:none;margin-top:8px;background:#ff5555;">
+    Reset Game
+  </button>
+
+  <div id="controls">
+    <div class="ctrlRow">
+      <button class="ctrlBtn" onclick="movePacman(0,-1)">⬆️</button>
+    </div>
     <div class="ctrlRow">
       <button class="ctrlBtn" onclick="movePacman(-1,0)">⬅️</button>
       <button class="ctrlBtn" onclick="movePacman(1,0)">➡️</button>
     </div>
-    <div class="ctrlRow"><button class="ctrlBtn" onclick="movePacman(0,1)">⬇️</button></div>
+    <div class="ctrlRow">
+      <button class="ctrlBtn" onclick="movePacman(0,1)">⬇️</button>
+    </div>
   </div>
 </div>
 
@@ -55,148 +105,147 @@ canvas { width:100%; height:auto; background:black; border:3px solid #1e90ff; }
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const TILE = 20, ROWS = 21, COLS = 21;
-canvas.width = COLS * TILE;
-canvas.height = ROWS * TILE;
+const TILE=20, ROWS=21, COLS=21;
+canvas.width=COLS*TILE;
+canvas.height=ROWS*TILE;
 
-let mouthOpen = true;
-let score = 0;
-let powerTimer = 0;
-let gameActive = false;
+let soundOn=true;
+let score=0;
+let power=false;
+let gameOver=false;
 
-const originalMaze = [
+const baseMaze=[
 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-[1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1],
-[1,2,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,2,1],
-[1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,0,1],
-[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1],
-[1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,1],
-[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,1],
-[1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,0,1],
-[1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-[1,1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,1,0,1,1,1],
-[1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1],
-[1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
-[1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1],
-[1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,0,1],
-[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1],
-[1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,1],
-[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-[1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1],
-[1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,1,2,1,1,2,1,2,1,1,2,1,1,2,1,1,2,1],
+[1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,1],
+[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,1,1,1,1,2,1,1,2,1,2,1,1,2,1,1,2,1,1,1,1],
+[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,1,1,1,1,1,1,1,2,1,2,1,1,2,1,1,1,1,1,1,1],
+[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,1,1,1,1,2,1,1,2,1,2,1,1,2,1,1,2,1,1,1,1],
+[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
+[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
+[1,2,1,1,1,1,1,1,2,1,2,1,1,2,1,1,1,1,1,2,1],
+[1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,1],
 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
 let maze, pacman, ghosts;
 
-function resetGame(showMessage=true) {
-  maze = originalMaze.map(r => r.slice());
-  pacman = { x:1, y:1, dir:"right" };
-  ghosts = [
-    { x:10, y:9, color:"red", home:{x:10,y:9} },
-    { x:9,  y:10,color:"pink",home:{x:9,y:10} },
-    { x:11, y:10,color:"cyan",home:{x:11,y:10} },
-    { x:10, y:11,color:"orange",home:{x:10,y:11} }
+function play(freq){
+  if(!soundOn) return;
+  const a=new AudioContext(), o=a.createOscillator();
+  o.frequency.value=freq; o.connect(a.destination);
+  o.start(); setTimeout(()=>o.stop(),90);
+}
+
+function resetGame(){
+  maze=JSON.parse(JSON.stringify(baseMaze));
+  pacman={x:1,y:1,dir:"right"};
+  ghosts=[
+    {x:10,y:9,color:"red"},
+    {x:9,y:9,color:"pink"},
+    {x:11,y:9,color:"cyan"},
+    {x:10,y:10,color:"orange"}
   ];
-  powerTimer = 0;
-  score = 0;
-  document.getElementById("score").innerText = "Score: 0";
-  if (showMessage) flashMessage("Ready!");
+  score=0; power=false; gameOver=false;
+  document.getElementById("score").innerText="Score: 0";
+  document.getElementById("message").innerText="";
+  document.getElementById("resetBtn").style.display="none";
   draw();
 }
 
-function flashMessage(text) {
-  const m = document.getElementById("message");
-  m.innerText = text;
-  setTimeout(()=>m.innerText="",1500);
-}
-
 function movePacman(dx,dy){
-  if (!gameActive) return;
-
+  if(gameOver) return;
   const nx=pacman.x+dx, ny=pacman.y+dy;
-  if (maze[ny][nx]!==1){
+  if(maze[ny][nx]!==1){
     pacman.x=nx; pacman.y=ny;
-    pacman.dir = dx===1?"right":dx===-1?"left":dy===-1?"up":"down";
-    mouthOpen=!mouthOpen;
-
-    if (maze[ny][nx]===0) score+=10;
-    if (maze[ny][nx]===2){
-      score+=50;
-      powerTimer=15;
-      flashMessage("🎤 Public Speaking Power!");
+    pacman.dir=dx?dx>0?"right":"left":dy>0?"down":"up";
+    if(maze[ny][nx]===2){ score+=10; play(600); }
+    if(maze[ny][nx]===3){
+      power=true; play(300);
+      setTimeout(()=>power=false,6000);
     }
-
-    maze[ny][nx]=3;
-    document.getElementById("score").innerText="Score: "+score;
-
+    maze[ny][nx]=0;
     moveGhosts();
-    checkCollisions();
+    checkCollision();
     draw();
+    checkWin();
   }
 }
 
 function moveGhosts(){
   ghosts.forEach(g=>{
-    if (powerTimer>0 && Math.random()<0.4) return;
-    const d=[[1,0],[-1,0],[0,1],[0,-1]][Math.floor(Math.random()*4)];
-    if (maze[g.y+d[1]][g.x+d[0]]!==1){
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+    const d=dirs[Math.floor(Math.random()*4)];
+    if(maze[g.y+d[1]][g.x+d[0]]!==1){
       g.x+=d[0]; g.y+=d[1];
     }
   });
-  if (powerTimer>0) powerTimer--;
 }
 
-function checkCollisions(){
-  ghosts.forEach(g=>{
-    if (g.x===pacman.x && g.y===pacman.y){
-      if (powerTimer>0){
-        score+=100;
-        g.x=g.home.x; g.y=g.home.y;
-        flashMessage("👻 Anxiety Defeated!");
+function checkCollision(){
+  ghosts.forEach((g,i)=>{
+    if(g.x===pacman.x&&g.y===pacman.y){
+      if(power){
+        ghosts[i]={x:10,y:9,color:g.color};
+        score+=50; play(800);
       } else {
-        gameActive=false;
-        flashMessage("💀 Game Over");
-        setTimeout(()=>resetGame(false),1500);
+        gameOver=true;
+        play(120);
+        document.getElementById("message").innerText="💀 Speech anxiety wins!";
+        document.getElementById("resetBtn").style.display="block";
       }
     }
   });
 }
 
-function drawPacman(){
-  const cx=pacman.x*TILE+TILE/2, cy=pacman.y*TILE+TILE/2;
-  const r=TILE/2.2, m=mouthOpen?0.35:0.1;
-  let s=0,e=Math.PI*2;
-  if(pacman.dir==="right"){s=m*Math.PI;e=(2-m)*Math.PI;}
-  if(pacman.dir==="left"){s=(1+m)*Math.PI;e=(1-m)*Math.PI;}
-  if(pacman.dir==="up"){s=(1.5+m)*Math.PI;e=(1.5-m)*Math.PI;}
-  if(pacman.dir==="down"){s=(0.5+m)*Math.PI;e=(0.5-m)*Math.PI;}
-  ctx.fillStyle="yellow";
-  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,s,e); ctx.fill();
+function checkWin(){
+  if(maze.flat().every(c=>c!==2&&c!==3)){
+    gameOver=true;
+    play(900);
+    document.getElementById("message").innerText="🏆 Public Speaking Mastery!";
+    document.getElementById("resetBtn").style.display="block";
+  }
 }
 
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
-    if(maze[y][x]===1){ctx.fillStyle="#1e90ff";ctx.fillRect(x*TILE,y*TILE,TILE,TILE);}
-    if(maze[y][x]===0){ctx.fillStyle="white";ctx.beginPath();ctx.arc(x*TILE+10,y*TILE+10,3,0,7);ctx.fill();}
-    if(maze[y][x]===2){ctx.font="16px Arial";ctx.fillText("🎤",x*TILE+2,y*TILE+16);}
-  }
+  maze.forEach((r,y)=>r.forEach((c,x)=>{
+    if(c===1){ctx.fillStyle="blue";ctx.fillRect(x*TILE,y*TILE,TILE,TILE);}
+    if(c===2){ctx.fillStyle="white";ctx.beginPath();ctx.arc(x*TILE+10,y*TILE+10,3,0,7);ctx.fill();}
+    if(c===3){ctx.fillStyle="gold";ctx.font="14px Arial";ctx.fillText("🎤",x*TILE+2,y*TILE+15);}
+  }));
   ghosts.forEach(g=>{
-    ctx.fillStyle=powerTimer>0?"blue":g.color;
-    ctx.beginPath();ctx.arc(g.x*TILE+10,g.y*TILE+10,8,0,7);ctx.fill();
+    ctx.fillStyle=power?"#555":g.color;
+    ctx.beginPath();ctx.arc(g.x*TILE+10,g.y*TILE+10,10,0,7);ctx.fill();
   });
-  drawPacman();
+  ctx.fillStyle="yellow";
+  ctx.beginPath();
+  ctx.arc(pacman.x*TILE+10,pacman.y*TILE+10,10,0.25*Math.PI,1.75*Math.PI);
+  ctx.lineTo(pacman.x*TILE+10,pacman.y*TILE+10);
+  ctx.fill();
 }
 
 document.getElementById("startBtn").onclick=()=>{
   document.getElementById("startBtn").style.display="none";
   document.getElementById("gameContainer").style.display="block";
-  gameActive=true;
   resetGame();
 };
-</script>
 
+document.getElementById("resetBtn").onclick=resetGame;
+document.getElementById("soundBtn").onclick=()=>{
+  soundOn=!soundOn;
+  document.getElementById("soundBtn").innerText=soundOn?"🔊":"🔇";
+};
+</script>
 </body>
 </html>
