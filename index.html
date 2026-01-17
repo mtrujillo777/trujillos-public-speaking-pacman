@@ -96,7 +96,6 @@ By navigating the maze and collecting pellets, you are training your brain to fo
 <div id="gameWrapper">
   <div id="topBar">
     <div>Score: <span id="score">0</span></div>
-    <button id="soundBtn">🔊</button>
   </div>
 
   <canvas id="game" width="390" height="390"></canvas>
@@ -122,6 +121,8 @@ const WALL = 1, DOT = 0, MIC = 2, EMPTY = 3;
 
 let score = 0;
 let gameOver = false;
+let powerMode = false;
+let powerTimer = null;
 
 const maze = [
 [1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -147,6 +148,14 @@ let ghosts = [
  {x:7,y:6,c:"pink"},
  {x:7,y:7,c:"orange"}
 ];
+
+const ghostHome = {x:6,y:6};
+
+function activatePowerMode(){
+ powerMode = true;
+ clearTimeout(powerTimer);
+ powerTimer = setTimeout(()=>powerMode=false,6000);
+}
 
 function draw() {
  ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -177,7 +186,7 @@ function draw() {
  ctx.fill();
 
  ghosts.forEach(g=>{
-  ctx.fillStyle=g.c;
+  ctx.fillStyle = powerMode ? "#1e90ff" : g.c;
   ctx.beginPath();
   ctx.arc(g.x*TILE+TILE/2,g.y*TILE+TILE/2,TILE/2-3,Math.PI,0);
   ctx.lineTo(g.x*TILE+TILE-3,g.y*TILE+TILE-3);
@@ -193,7 +202,11 @@ function move(dx,dy){
  if(maze[ny][nx]!==WALL){
   pac.x=nx; pac.y=ny;
   if(maze[ny][nx]===DOT){ score+=10; maze[ny][nx]=EMPTY; }
-  if(maze[ny][nx]===MIC){ score+=50; maze[ny][nx]=EMPTY; }
+  if(maze[ny][nx]===MIC){
+    score+=50;
+    maze[ny][nx]=EMPTY;
+    activatePowerMode();
+  }
  }
  checkCollision();
  document.getElementById("score").textContent=score;
@@ -218,9 +231,15 @@ function moveGhosts(){
 function checkCollision(){
  ghosts.forEach(g=>{
   if(g.x===pac.x && g.y===pac.y){
-    gameOver=true;
-    alert("😔 You were overwhelmed. Try again.");
-    location.reload();
+    if(powerMode){
+      score+=200;
+      g.x = ghostHome.x;
+      g.y = ghostHome.y;
+    } else {
+      gameOver=true;
+      alert("😔 You were overwhelmed. Try again.");
+      location.reload();
+    }
   }
  });
 }
