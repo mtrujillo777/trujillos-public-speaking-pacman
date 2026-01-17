@@ -13,11 +13,7 @@ body {
   font-family: Arial, sans-serif;
   text-align: center;
 }
-
-h1 {
-  margin: 8px 0;
-  font-size: 22px;
-}
+h1 { margin: 8px 0; font-size: 22px; }
 
 #intro {
   max-width: 390px;
@@ -106,16 +102,12 @@ By navigating the maze and collecting pellets, you are training your brain to fo
   <canvas id="game" width="390" height="390"></canvas>
 
   <div id="controls">
-    <div>
-      <button onclick="move(0,-1)">⬆️</button>
-    </div>
+    <div><button onclick="move(0,-1)">⬆️</button></div>
     <div>
       <button onclick="move(-1,0)">⬅️</button>
       <button onclick="move(1,0)">➡️</button>
     </div>
-    <div>
-      <button onclick="move(0,1)">⬇️</button>
-    </div>
+    <div><button onclick="move(0,1)">⬇️</button></div>
   </div>
 </div>
 
@@ -123,8 +115,7 @@ By navigating the maze and collecting pellets, you are training your brain to fo
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const COLS = 13;
-const ROWS = 13;
+const COLS = 13, ROWS = 13;
 const TILE = canvas.width / COLS;
 
 const WALL = 1, DOT = 0, MIC = 2, EMPTY = 3;
@@ -204,6 +195,27 @@ function move(dx,dy){
   if(maze[ny][nx]===DOT){ score+=10; maze[ny][nx]=EMPTY; }
   if(maze[ny][nx]===MIC){ score+=50; maze[ny][nx]=EMPTY; }
  }
+ checkCollision();
+ document.getElementById("score").textContent=score;
+ draw();
+}
+
+function moveGhosts(){
+ if(gameOver) return;
+ ghosts.forEach(g=>{
+  const dirs = [
+    {x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}
+  ].filter(d=>maze[g.y+d.y][g.x+d.x]!==WALL);
+
+  const d = dirs[Math.floor(Math.random()*dirs.length)];
+  g.x += d.x;
+  g.y += d.y;
+ });
+ checkCollision();
+ draw();
+}
+
+function checkCollision(){
  ghosts.forEach(g=>{
   if(g.x===pac.x && g.y===pac.y){
     gameOver=true;
@@ -211,8 +223,6 @@ function move(dx,dy){
     location.reload();
   }
  });
- document.getElementById("score").textContent=score;
- draw();
 }
 
 document.getElementById("startBtn").onclick=()=>{
@@ -220,6 +230,7 @@ document.getElementById("startBtn").onclick=()=>{
  document.getElementById("startBtn").style.display="none";
  document.getElementById("gameWrapper").style.display="block";
  draw();
+ setInterval(moveGhosts,700);
 };
 </script>
 
