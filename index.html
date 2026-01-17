@@ -7,46 +7,66 @@
 
 <style>
 body {
-  margin:0;
-  background:black;
-  color:white;
-  font-family:Arial, sans-serif;
-  text-align:center;
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
 }
-h1 { margin:10px 0 5px; }
+
+h1 {
+  margin: 8px 0;
+  font-size: 22px;
+}
 
 #intro {
-  max-width:420px;
-  margin:10px auto;
-  font-size:14px;
-  line-height:1.45;
+  max-width: 390px;
+  margin: 10px auto;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
-#gameUI { display:none; }
+#startBtn {
+  padding: 12px 18px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+#gameWrapper {
+  display: none;
+  max-width: 390px;
+  margin: 0 auto;
+}
+
+#topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 4px;
+  font-size: 16px;
+}
 
 canvas {
-  display:block;
-  margin:8px auto;
-  background:black;
-  border:3px solid #1e90ff;
-  width:100%;
-  max-width:390px;
-  height:auto;
+  display: block;
+  width: 100%;
+  height: auto;
+  background: black;
+  border: 3px solid #1e90ff;
 }
 
-button {
-  margin:6px;
-  padding:10px 14px;
-  font-size:14px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
+#controls {
+  margin-top: 10px;
 }
 
 #controls button {
-  width:360px;
-  height:360px;
-  font-size:24px;
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+  margin: 4px;
+  border-radius: 10px;
+  border: none;
 }
 </style>
 </head>
@@ -59,7 +79,7 @@ button {
 Speech anxiety, or glossophobia, is the "fight-or-flight" response triggered by the fear of being judged. It feels like a threat, but it’s actually just misplaced energy. Overcoming it requires preparation, steady breathing, and reframing nervous jitters as excitement.
 
 <br><br>
-<b>This game transforms that internal struggle into a winnable battle.</b>
+This game transforms that internal struggle into a winnable battle. Here is how to play and what it represents:
 
 <br><br>
 <b>How to Play</b><br>
@@ -77,21 +97,25 @@ By navigating the maze and collecting pellets, you are training your brain to fo
 
 <button id="startBtn">Start Game</button>
 
-<div id="gameUI">
-  <div>
-    Score: <span id="score">0</span>
+<div id="gameWrapper">
+  <div id="topBar">
+    <div>Score: <span id="score">0</span></div>
     <button id="soundBtn">🔊</button>
   </div>
 
-  <canvas id="game"></canvas>
+  <canvas id="game" width="390" height="390"></canvas>
 
   <div id="controls">
-    <div><button onclick="move(0,-1)">⬆️</button></div>
+    <div>
+      <button onclick="move(0,-1)">⬆️</button>
+    </div>
     <div>
       <button onclick="move(-1,0)">⬅️</button>
       <button onclick="move(1,0)">➡️</button>
     </div>
-    <div><button onclick="move(0,1)">⬇️</button></div>
+    <div>
+      <button onclick="move(0,1)">⬇️</button>
+    </div>
   </div>
 </div>
 
@@ -100,83 +124,92 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 const COLS = 13;
-const ROWS = 9;
-let TILE = Math.floor(Math.min(window.innerWidth,390) / COLS);
-canvas.width = TILE * COLS;
-canvas.height = TILE * ROWS;
+const ROWS = 13;
+const TILE = canvas.width / COLS;
 
-const WALL = 1, DOT = 0, MIC = 2;
-let score = 0, soundOn = true, gameOver = false;
+const WALL = 1, DOT = 0, MIC = 2, EMPTY = 3;
+
+let score = 0;
+let gameOver = false;
 
 const maze = [
-"##################",
-"#........##......#",
-"#.####.#.##.#.####.#",
-"#M....#......#....M#",
-"#.####.#.##.#.####.#",
-"#........##......#",
-"##################"
+[1,1,1,1,1,1,1,1,1,1,1,1,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,1,1,0,1,1,1,0,1,1,0,1],
+[1,2,1,0,0,0,1,0,0,0,1,2,1],
+[1,0,1,0,1,0,1,0,1,0,1,0,1],
+[1,0,0,0,1,0,0,0,1,0,0,0,1],
+[1,0,1,0,1,1,1,1,1,0,1,0,1],
+[1,0,1,0,0,0,0,0,0,0,1,0,1],
+[1,0,1,1,1,0,1,0,1,0,1,0,1],
+[1,0,0,0,1,0,0,0,1,0,0,0,1],
+[1,2,1,0,1,1,1,1,1,0,1,2,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-let pac = {x:1,y:1,dir:0};
+let pac = { x: 1, y: 1 };
+
 let ghosts = [
- {x:6,y:4,c:"red"},
- {x:7,y:4,c:"cyan"},
- {x:6,y:5,c:"pink"},
- {x:7,y:5,c:"orange"}
+ {x:6,y:6,c:"red"},
+ {x:6,y:7,c:"cyan"},
+ {x:7,y:6,c:"pink"},
+ {x:7,y:7,c:"orange"}
 ];
 
 function draw() {
  ctx.clearRect(0,0,canvas.width,canvas.height);
- for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
-   if(maze[y][x]===1){
-     ctx.fillStyle="#0033ff";
-     ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
-   }
-   if(maze[y][x]===0){
-     ctx.fillStyle="white";
-     ctx.beginPath();
-     ctx.arc(x*TILE+TILE/2,y*TILE+TILE/2,3,0,Math.PI*2);
-     ctx.fill();
-   }
-   if(maze[y][x]===2){
-     ctx.font=`${TILE-4}px Arial`;
-     ctx.fillText("🎤",x*TILE+2,y*TILE+TILE-2);
-   }
+
+ for(let y=0;y<ROWS;y++){
+  for(let x=0;x<COLS;x++){
+    if(maze[y][x]===WALL){
+      ctx.fillStyle="#0033ff";
+      ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+    }
+    if(maze[y][x]===DOT){
+      ctx.fillStyle="white";
+      ctx.beginPath();
+      ctx.arc(x*TILE+TILE/2,y*TILE+TILE/2,3,0,Math.PI*2);
+      ctx.fill();
+    }
+    if(maze[y][x]===MIC){
+      ctx.font="18px Arial";
+      ctx.fillText("🎤",x*TILE+6,y*TILE+20);
+    }
+  }
  }
- // Pac-Man
+
  ctx.fillStyle="yellow";
  ctx.beginPath();
- ctx.arc(pac.x*TILE+TILE/2,pac.y*TILE+TILE/2,TILE/2-2,0.25*Math.PI,1.75*Math.PI);
+ ctx.arc(pac.x*TILE+TILE/2,pac.y*TILE+TILE/2,TILE/2-3,0.25*Math.PI,1.75*Math.PI);
  ctx.lineTo(pac.x*TILE+TILE/2,pac.y*TILE+TILE/2);
  ctx.fill();
 
- // Ghosts
  ghosts.forEach(g=>{
-   ctx.fillStyle=g.c;
-   ctx.beginPath();
-   ctx.arc(g.x*TILE+TILE/2,g.y*TILE+TILE/2,TILE/2-2,Math.PI,0);
-   ctx.lineTo(g.x*TILE+TILE-2,g.y*TILE+TILE-2);
-   ctx.lineTo(g.x*TILE+2,g.y*TILE+TILE-2);
-   ctx.closePath();
-   ctx.fill();
+  ctx.fillStyle=g.c;
+  ctx.beginPath();
+  ctx.arc(g.x*TILE+TILE/2,g.y*TILE+TILE/2,TILE/2-3,Math.PI,0);
+  ctx.lineTo(g.x*TILE+TILE-3,g.y*TILE+TILE-3);
+  ctx.lineTo(g.x*TILE+3,g.y*TILE+TILE-3);
+  ctx.closePath();
+  ctx.fill();
  });
 }
 
 function move(dx,dy){
  if(gameOver) return;
  const nx=pac.x+dx, ny=pac.y+dy;
- if(maze[ny][nx]!==1){
-   pac.x=nx; pac.y=ny;
-   if(maze[ny][nx]===0){ score+=10; maze[ny][nx]=3; }
-   if(maze[ny][nx]===2){ score+=50; maze[ny][nx]=3; }
+ if(maze[ny][nx]!==WALL){
+  pac.x=nx; pac.y=ny;
+  if(maze[ny][nx]===DOT){ score+=10; maze[ny][nx]=EMPTY; }
+  if(maze[ny][nx]===MIC){ score+=50; maze[ny][nx]=EMPTY; }
  }
  ghosts.forEach(g=>{
-   if(g.x===pac.x && g.y===pac.y){
-     gameOver=true;
-     alert("😔 You were overwhelmed — try again.");
-     location.reload();
-   }
+  if(g.x===pac.x && g.y===pac.y){
+    gameOver=true;
+    alert("😔 You were overwhelmed. Try again.");
+    location.reload();
+  }
  });
  document.getElementById("score").textContent=score;
  draw();
@@ -185,13 +218,8 @@ function move(dx,dy){
 document.getElementById("startBtn").onclick=()=>{
  document.getElementById("intro").style.display="none";
  document.getElementById("startBtn").style.display="none";
- document.getElementById("gameUI").style.display="block";
+ document.getElementById("gameWrapper").style.display="block";
  draw();
-};
-
-document.getElementById("soundBtn").onclick=()=>{
- soundOn=!soundOn;
- document.getElementById("soundBtn").textContent=soundOn?"🔊":"🔇";
 };
 </script>
 
