@@ -10,12 +10,25 @@ body {
   margin:0;
   background:black;
   color:white;
-  font-family:Arial,sans-serif;
+  font-family:Arial, sans-serif;
   text-align:center;
 }
-h1 { margin:6px 0; font-size:22px; }
 
-#gameContainer { display:none; max-width:420px; margin:auto; }
+h1 { margin:10px 0; }
+
+#intro {
+  max-width:420px;
+  margin:20px auto;
+  padding:10px;
+  font-size:14px;
+  line-height:1.4;
+}
+
+#gameContainer {
+  display:none;
+  max-width:420px;
+  margin:auto;
+}
 
 canvas {
   width:100%;
@@ -27,34 +40,34 @@ canvas {
 #topBar {
   display:flex;
   justify-content:space-between;
-  align-items:center;
-  font-size:14px;
   margin:6px;
+  font-size:14px;
 }
 
 #message {
-  color:gold;
   min-height:20px;
+  color:gold;
+  margin-bottom:4px;
 }
 
 button {
   border:none;
   border-radius:8px;
-  padding:6px 12px;
+  padding:10px 18px;
+  font-size:16px;
   cursor:pointer;
 }
 
 #startBtn {
-  padding:14px 28px;
-  font-size:18px;
   background:gold;
+  font-size:18px;
+  margin-top:10px;
 }
 
-#controls {
-  margin-top:8px;
+.ctrlRow {
+  display:flex;
+  justify-content:center;
 }
-
-.ctrlRow { display:flex; justify-content:center; }
 
 .ctrlBtn {
   width:60px;
@@ -71,6 +84,27 @@ button {
 
 <h1>🎤 Trujillo's Public Speaking</h1>
 
+<div id="intro">
+Speech anxiety, or glossophobia, is the "fight-or-flight" response triggered by the fear of being judged. It feels like a threat, but it’s actually just misplaced energy. Overcoming it requires preparation, steady breathing, and reframing nervous jitters as excitement.
+
+<br><br>
+<strong>This game transforms that internal struggle into a winnable battle.</strong>
+
+<br><br>
+<strong>How to Play</strong><br>
+The Ghosts: These represent your anxious thoughts. They may seem intimidating, but they only have power if you stop moving.<br><br>
+
+Arrow Buttons: Press once for each move. This mirrors deliberate pacing—taking your speech one step, or one word, at a time.<br><br>
+
+Confidence Pellets: Collect these to win. Each pellet represents a successful point made or a moment of eye contact with your audience.<br><br>
+
+Microphones: These are your Power-Ups. When you embrace your voice, your fears become vulnerable, and you take control of the room.
+
+<br><br>
+<strong>The Goal</strong><br>
+Stay calm, move with purpose, and silence the ghosts of doubt.
+</div>
+
 <button id="startBtn">Start Game</button>
 
 <div id="gameContainer">
@@ -83,11 +117,11 @@ button {
 
   <canvas id="game"></canvas>
 
-  <button id="resetBtn" style="display:none;margin-top:8px;background:#ff5555;">
+  <button id="resetBtn" style="display:none;background:#ff5555;margin-top:6px;">
     Reset Game
   </button>
 
-  <div id="controls">
+  <div>
     <div class="ctrlRow">
       <button class="ctrlBtn" onclick="movePacman(0,-1)">⬆️</button>
     </div>
@@ -104,57 +138,42 @@ button {
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const TILE=20, SIZE=21;
+canvas.width=canvas.height=TILE*SIZE;
 
-const TILE=20, ROWS=21, COLS=21;
-canvas.width=COLS*TILE;
-canvas.height=ROWS*TILE;
-
+let audioCtx;
 let soundOn=true;
-let score=0;
-let power=false;
-let gameOver=false;
+let score=0, power=false, gameOver=false;
 
-const baseMaze=[
-[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
-[1,2,1,1,1,2,1,1,2,1,2,1,1,2,1,1,2,1,1,2,1],
-[1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,1],
-[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
-[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
-[1,1,1,1,1,2,1,1,2,1,2,1,1,2,1,1,2,1,1,1,1],
-[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
-[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
-[1,1,1,1,1,1,1,1,2,1,2,1,1,2,1,1,1,1,1,1,1],
-[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
-[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
-[1,1,1,1,1,2,1,1,2,1,2,1,1,2,1,1,2,1,1,1,1],
-[1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-[1,2,1,1,2,1,1,2,1,1,1,1,1,2,1,1,2,1,1,2,1],
-[1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1],
-[1,2,1,1,1,1,1,1,2,1,2,1,1,2,1,1,1,1,1,2,1],
-[1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,1],
-[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-];
+const baseMaze = Array.from({length:SIZE},(_,y)=>
+  Array.from({length:SIZE},(_,x)=>
+    (x===0||y===0||x===20||y===20||x%4===0&&y%2===0)?1:2
+  )
+);
+baseMaze[1][1]=0;
+baseMaze[10][10]=3;
+baseMaze[3][18]=3;
+baseMaze[18][3]=3;
 
 let maze, pacman, ghosts;
 
 function play(freq){
   if(!soundOn) return;
-  const a=new AudioContext(), o=a.createOscillator();
-  o.frequency.value=freq; o.connect(a.destination);
-  o.start(); setTimeout(()=>o.stop(),90);
+  const o=audioCtx.createOscillator();
+  o.frequency.value=freq;
+  o.connect(audioCtx.destination);
+  o.start();
+  setTimeout(()=>o.stop(),120);
 }
 
 function resetGame(){
   maze=JSON.parse(JSON.stringify(baseMaze));
-  pacman={x:1,y:1,dir:"right"};
+  pacman={x:1,y:1};
   ghosts=[
     {x:10,y:9,color:"red"},
-    {x:9,y:9,color:"pink"},
-    {x:11,y:9,color:"cyan"},
-    {x:10,y:10,color:"orange"}
+    {x:9,y:10,color:"pink"},
+    {x:11,y:10,color:"cyan"},
+    {x:10,y:11,color:"orange"}
   ];
   score=0; power=false; gameOver=false;
   document.getElementById("score").innerText="Score: 0";
@@ -168,13 +187,13 @@ function movePacman(dx,dy){
   const nx=pacman.x+dx, ny=pacman.y+dy;
   if(maze[ny][nx]!==1){
     pacman.x=nx; pacman.y=ny;
-    pacman.dir=dx?dx>0?"right":"left":dy>0?"down":"up";
     if(maze[ny][nx]===2){ score+=10; play(600); }
     if(maze[ny][nx]===3){
-      power=true; play(300);
+      score+=50; power=true; play(300);
       setTimeout(()=>power=false,6000);
     }
     maze[ny][nx]=0;
+    document.getElementById("score").innerText="Score: "+score;
     moveGhosts();
     checkCollision();
     draw();
@@ -184,35 +203,52 @@ function movePacman(dx,dy){
 
 function moveGhosts(){
   ghosts.forEach(g=>{
-    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    const d=dirs[Math.floor(Math.random()*4)];
+    const d=[[1,0],[-1,0],[0,1],[0,-1]][Math.floor(Math.random()*4)];
     if(maze[g.y+d[1]][g.x+d[0]]!==1){
       g.x+=d[0]; g.y+=d[1];
     }
   });
 }
 
+function drawGhost(g){
+  const x=g.x*TILE+10, y=g.y*TILE+10;
+  ctx.fillStyle=power?"#555":g.color;
+  ctx.beginPath();
+  ctx.arc(x,y,10,Math.PI,0);
+  ctx.lineTo(x+10,y+10);
+  ctx.lineTo(x+5,y+6);
+  ctx.lineTo(x,y+10);
+  ctx.lineTo(x-5,y+6);
+  ctx.lineTo(x-10,y+10);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle="white";
+  ctx.beginPath(); ctx.arc(x-4,y-2,3,0,7); ctx.arc(x+4,y-2,3,0,7); ctx.fill();
+  ctx.fillStyle="black";
+  ctx.beginPath(); ctx.arc(x-4,y-2,1.5,0,7); ctx.arc(x+4,y-2,1.5,0,7); ctx.fill();
+}
+
 function checkCollision(){
   ghosts.forEach((g,i)=>{
     if(g.x===pacman.x&&g.y===pacman.y){
       if(power){
-        ghosts[i]={x:10,y:9,color:g.color};
-        score+=50; play(800);
+        score+=100; play(800);
+        ghosts[i]={x:10,y:10,color:g.color};
       } else {
-        gameOver=true;
-        play(120);
-        document.getElementById("message").innerText="💀 Speech anxiety wins!";
+        gameOver=true; play(120);
+        document.getElementById("message").innerText="😞 Anxiety caught you this time.";
         document.getElementById("resetBtn").style.display="block";
       }
+      document.getElementById("score").innerText="Score: "+score;
     }
   });
 }
 
 function checkWin(){
   if(maze.flat().every(c=>c!==2&&c!==3)){
-    gameOver=true;
-    play(900);
-    document.getElementById("message").innerText="🏆 Public Speaking Mastery!";
+    gameOver=true; play(900);
+    document.getElementById("message").innerText="🏆 You owned the room.";
     document.getElementById("resetBtn").style.display="block";
   }
 }
@@ -222,12 +258,9 @@ function draw(){
   maze.forEach((r,y)=>r.forEach((c,x)=>{
     if(c===1){ctx.fillStyle="blue";ctx.fillRect(x*TILE,y*TILE,TILE,TILE);}
     if(c===2){ctx.fillStyle="white";ctx.beginPath();ctx.arc(x*TILE+10,y*TILE+10,3,0,7);ctx.fill();}
-    if(c===3){ctx.fillStyle="gold";ctx.font="14px Arial";ctx.fillText("🎤",x*TILE+2,y*TILE+15);}
+    if(c===3){ctx.font="14px Arial";ctx.fillText("🎤",x*TILE+2,y*TILE+15);}
   }));
-  ghosts.forEach(g=>{
-    ctx.fillStyle=power?"#555":g.color;
-    ctx.beginPath();ctx.arc(g.x*TILE+10,g.y*TILE+10,10,0,7);ctx.fill();
-  });
+  ghosts.forEach(drawGhost);
   ctx.fillStyle="yellow";
   ctx.beginPath();
   ctx.arc(pacman.x*TILE+10,pacman.y*TILE+10,10,0.25*Math.PI,1.75*Math.PI);
@@ -236,6 +269,8 @@ function draw(){
 }
 
 document.getElementById("startBtn").onclick=()=>{
+  audioCtx=new AudioContext();
+  document.getElementById("intro").style.display="none";
   document.getElementById("startBtn").style.display="none";
   document.getElementById("gameContainer").style.display="block";
   resetGame();
