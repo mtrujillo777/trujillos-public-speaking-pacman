@@ -1,286 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Trujillo's Public Speaking Pac-Man</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mr. Trujillo's Speech Anxiety Arcade</title>
 
 <style>
 body {
-  margin:0;
-  background:black;
-  color:white;
-  font-family:Arial, sans-serif;
-  text-align:center;
-}
-
-h1 { margin:10px 0; }
-
-#intro {
-  max-width:420px;
-  margin:20px auto;
-  padding:10px;
-  font-size:14px;
-  line-height:1.4;
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
 }
 
 #gameContainer {
-  display:none;
-  max-width:420px;
-  margin:auto;
+  display: none;
+  flex-direction: column;
+  align-items: center;
 }
 
 canvas {
-  width:100%;
-  height:auto;
-  background:black;
-  border:3px solid #1e90ff;
-}
-
-#topBar {
-  display:flex;
-  justify-content:space-between;
-  margin:6px;
-  font-size:14px;
-}
-
-#message {
-  min-height:20px;
-  color:gold;
-  margin-bottom:4px;
+  background: black;
+  max-width: 100%;
+  height: auto;
 }
 
 button {
-  border:none;
-  border-radius:8px;
-  padding:10px 18px;
-  font-size:16px;
-  cursor:pointer;
+  padding: 10px 16px;
+  margin: 6px;
+  font-size: 16px;
 }
 
-#startBtn {
-  background:gold;
-  font-size:18px;
-  margin-top:10px;
+#controls {
+  display: grid;
+  grid-template-columns: 60px 60px 60px;
+  gap: 6px;
+  margin-top: 10px;
 }
 
-.ctrlRow {
-  display:flex;
-  justify-content:center;
+#controls button {
+  font-size: 18px;
 }
 
-.ctrlBtn {
-  width:60px;
-  height:60px;
-  margin:4px;
-  font-size:22px;
-  background:#333;
-  color:white;
+#overlay {
+  padding: 20px;
+  max-width: 800px;
+  margin: auto;
+}
+
+.hidden {
+  display: none;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🎤 Trujillo's Public Speaking</h1>
+<div id="overlay">
+  <h2>Mr. Trujillo's Speech Anxiety Arcade</h2>
+  <p>
+Speech anxiety, or glossophobia, is the "fight-or-flight" response triggered by the fear of being judged.
+It feels like a threat, but it’s actually just misplaced energy. Overcoming it requires preparation,
+steady breathing, and reframing nervous jitters as excitement.
+  </p>
+  <p>
+This game transforms that internal struggle into a winnable battle.
+  </p>
 
-<div id="intro">
-Speech anxiety, or glossophobia, is the "fight-or-flight" response triggered by the fear of being judged. It feels like a threat, but it’s actually just misplaced energy. Overcoming it requires preparation, steady breathing, and reframing nervous jitters as excitement.
+  <h3>How to Play</h3>
+  <ul style="text-align:left">
+    <li><b>The Ghosts:</b> Anxious thoughts — intimidating, but powerless if you keep moving.</li>
+    <li><b>Arrow Buttons:</b> One press per move — deliberate pacing.</li>
+    <li><b>Confidence Pellets:</b> Each one represents a successful moment.</li>
+    <li><b>Microphones:</b> Power-ups — owning your voice makes fear vulnerable.</li>
+  </ul>
 
-<br><br>
-<strong>This game transforms that internal struggle into a winnable battle.</strong>
+  <p><b>The Goal:</b> Stay calm, move with purpose, and silence the ghosts of doubt.</p>
 
-<br><br>
-<strong>How to Play</strong><br>
-The Ghosts: These represent your anxious thoughts. They may seem intimidating, but they only have power if you stop moving.<br><br>
-
-Arrow Buttons: Press once for each move. This mirrors deliberate pacing—taking your speech one step, or one word, at a time.<br><br>
-
-Confidence Pellets: Collect these to win. Each pellet represents a successful point made or a moment of eye contact with your audience.<br><br>
-
-Microphones: These are your Power-Ups. When you embrace your voice, your fears become vulnerable, and you take control of the room.
-
-<br><br>
-<strong>The Goal</strong><br>
-Stay calm, move with purpose, and silence the ghosts of doubt.
+  <button onclick="startGame()">Start Game</button>
 </div>
 
-<button id="startBtn">Start Game</button>
-
 <div id="gameContainer">
-  <div id="topBar">
-    <div id="score">Score: 0</div>
-    <button id="soundBtn">🔊</button>
-  </div>
-
-  <div id="message"></div>
-
-  <canvas id="game"></canvas>
-
-  <button id="resetBtn" style="display:none;background:#ff5555;margin-top:6px;">
-    Reset Game
-  </button>
-
   <div>
-    <div class="ctrlRow">
-      <button class="ctrlBtn" onclick="movePacman(0,-1)">⬆️</button>
-    </div>
-    <div class="ctrlRow">
-      <button class="ctrlBtn" onclick="movePacman(-1,0)">⬅️</button>
-      <button class="ctrlBtn" onclick="movePacman(1,0)">➡️</button>
-    </div>
-    <div class="ctrlRow">
-      <button class="ctrlBtn" onclick="movePacman(0,1)">⬇️</button>
-    </div>
+    Score: <span id="score">0</span>
+    <button onclick="toggleSound()">🔊</button>
   </div>
+
+  <canvas id="game" width="360" height="360"></canvas>
+
+  <div id="controls">
+    <div></div>
+    <button onclick="move('up')">⬆️</button>
+    <div></div>
+    <button onclick="move('left')">⬅️</button>
+    <button onclick="move('down')">⬇️</button>
+    <button onclick="move('right')">➡️</button>
+  </div>
+
+  <button id="resetBtn" class="hidden" onclick="resetGame()">Reset</button>
 </div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const TILE=20, SIZE=21;
-canvas.width=canvas.height=TILE*SIZE;
 
-let audioCtx;
-let soundOn=true;
-let score=0, power=false, gameOver=false;
+const tile = 20;
+let score = 0;
+let soundOn = true;
+let powerMode = false;
+let gameOver = false;
 
-const baseMaze = Array.from({length:SIZE},(_,y)=>
-  Array.from({length:SIZE},(_,x)=>
-    (x===0||y===0||x===20||y===20||x%4===0&&y%2===0)?1:2
-  )
-);
-baseMaze[1][1]=0;
-baseMaze[10][10]=3;
-baseMaze[3][18]=3;
-baseMaze[18][3]=3;
+const maze = [
+"##################",
+"#........##......#",
+"#.####.#.##.#.####.#",
+"#M....#......#....M#",
+"#.####.#.##.#.####.#",
+"#........##......#",
+"##################"
+];
 
-let maze, pacman, ghosts;
+let pacman = { x: 1, y: 1, dir: "right", mouth: 0 };
 
-function play(freq){
-  if(!soundOn) return;
-  const o=audioCtx.createOscillator();
-  o.frequency.value=freq;
-  o.connect(audioCtx.destination);
-  o.start();
-  setTimeout(()=>o.stop(),120);
-}
+let ghosts = [
+  { x: 8, y: 3, color: "red", vulnerable: false },
+  { x: 9, y: 3, color: "pink", vulnerable: false },
+  { x: 10, y: 3, color: "cyan", vulnerable: false }
+];
 
-function resetGame(){
-  maze=JSON.parse(JSON.stringify(baseMaze));
-  pacman={x:1,y:1};
-  ghosts=[
-    {x:10,y:9,color:"red"},
-    {x:9,y:10,color:"pink"},
-    {x:11,y:10,color:"cyan"},
-    {x:10,y:11,color:"orange"}
-  ];
-  score=0; power=false; gameOver=false;
-  document.getElementById("score").innerText="Score: 0";
-  document.getElementById("message").innerText="";
-  document.getElementById("resetBtn").style.display="none";
+let pellets = [];
+let microphones = [];
+
+maze.forEach((row,y)=>{
+  [...row].forEach((cell,x)=>{
+    if(cell === ".") pellets.push({x,y});
+    if(cell === "M") microphones.push({x,y});
+  });
+});
+
+function startGame(){
+  document.getElementById("overlay").style.display = "none";
+  document.getElementById("gameContainer").style.display = "flex";
   draw();
 }
 
-function movePacman(dx,dy){
-  if(gameOver) return;
-  const nx=pacman.x+dx, ny=pacman.y+dy;
-  if(maze[ny][nx]!==1){
-    pacman.x=nx; pacman.y=ny;
-    if(maze[ny][nx]===2){ score+=10; play(600); }
-    if(maze[ny][nx]===3){
-      score+=50; power=true; play(300);
-      setTimeout(()=>power=false,6000);
-    }
-    maze[ny][nx]=0;
-    document.getElementById("score").innerText="Score: "+score;
-    moveGhosts();
-    checkCollision();
-    draw();
-    checkWin();
-  }
+function toggleSound(){
+  soundOn = !soundOn;
 }
 
-function moveGhosts(){
-  ghosts.forEach(g=>{
-    const d=[[1,0],[-1,0],[0,1],[0,-1]][Math.floor(Math.random()*4)];
-    if(maze[g.y+d[1]][g.x+d[0]]!==1){
-      g.x+=d[0]; g.y+=d[1];
-    }
-  });
+function playSound(freq){
+  if(!soundOn) return;
+  const audio = new AudioContext();
+  const osc = audio.createOscillator();
+  osc.frequency.value = freq;
+  osc.connect(audio.destination);
+  osc.start();
+  osc.stop(audio.currentTime + 0.1);
+}
+
+function drawPacman(){
+  ctx.fillStyle = "yellow";
+  ctx.beginPath();
+  ctx.moveTo(pacman.x*tile+10, pacman.y*tile+10);
+  let angle = pacman.mouth ? 0.25 : 0.05;
+  let start = 0, end = Math.PI*2;
+
+  if(pacman.dir==="right"){ start=angle; end=2*Math.PI-angle;}
+  if(pacman.dir==="left"){ start=Math.PI+angle; end=Math.PI*3-angle;}
+  if(pacman.dir==="up"){ start=1.5*Math.PI+angle; end=1.5*Math.PI-angle;}
+  if(pacman.dir==="down"){ start=0.5*Math.PI+angle; end=0.5*Math.PI-angle;}
+
+  ctx.arc(pacman.x*tile+10,pacman.y*tile+10,8,start,end);
+  ctx.fill();
 }
 
 function drawGhost(g){
-  const x=g.x*TILE+10, y=g.y*TILE+10;
-  ctx.fillStyle=power?"#555":g.color;
+  ctx.fillStyle = g.vulnerable ? "blue" : g.color;
   ctx.beginPath();
-  ctx.arc(x,y,10,Math.PI,0);
-  ctx.lineTo(x+10,y+10);
-  ctx.lineTo(x+5,y+6);
-  ctx.lineTo(x,y+10);
-  ctx.lineTo(x-5,y+6);
-  ctx.lineTo(x-10,y+10);
-  ctx.closePath();
+  ctx.arc(g.x*tile+10,g.y*tile+10,8,Math.PI,0);
+  ctx.rect(g.x*tile+2,g.y*tile+10,16,10);
   ctx.fill();
 
-  ctx.fillStyle="white";
-  ctx.beginPath(); ctx.arc(x-4,y-2,3,0,7); ctx.arc(x+4,y-2,3,0,7); ctx.fill();
-  ctx.fillStyle="black";
-  ctx.beginPath(); ctx.arc(x-4,y-2,1.5,0,7); ctx.arc(x+4,y-2,1.5,0,7); ctx.fill();
-}
-
-function checkCollision(){
-  ghosts.forEach((g,i)=>{
-    if(g.x===pacman.x&&g.y===pacman.y){
-      if(power){
-        score+=100; play(800);
-        ghosts[i]={x:10,y:10,color:g.color};
-      } else {
-        gameOver=true; play(120);
-        document.getElementById("message").innerText="😞 Anxiety caught you this time.";
-        document.getElementById("resetBtn").style.display="block";
-      }
-      document.getElementById("score").innerText="Score: "+score;
-    }
-  });
-}
-
-function checkWin(){
-  if(maze.flat().every(c=>c!==2&&c!==3)){
-    gameOver=true; play(900);
-    document.getElementById("message").innerText="🏆 You owned the room.";
-    document.getElementById("resetBtn").style.display="block";
-  }
+  ctx.fillStyle = "white";
+  ctx.beginPath();
+  ctx.arc(g.x*tile+6,g.y*tile+8,2,0,2*Math.PI);
+  ctx.arc(g.x*tile+14,g.y*tile+8,2,0,2*Math.PI);
+  ctx.fill();
 }
 
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  maze.forEach((r,y)=>r.forEach((c,x)=>{
-    if(c===1){ctx.fillStyle="blue";ctx.fillRect(x*TILE,y*TILE,TILE,TILE);}
-    if(c===2){ctx.fillStyle="white";ctx.beginPath();ctx.arc(x*TILE+10,y*TILE+10,3,0,7);ctx.fill();}
-    if(c===3){ctx.font="14px Arial";ctx.fillText("🎤",x*TILE+2,y*TILE+15);}
-  }));
+
+  maze.forEach((row,y)=>{
+    [...row].forEach((cell,x)=>{
+      if(cell==="#"){
+        ctx.fillStyle="blue";
+        ctx.fillRect(x*tile,y*tile,tile,tile);
+      }
+    });
+  });
+
+  pellets.forEach(p=>{
+    ctx.fillStyle="white";
+    ctx.beginPath();
+    ctx.arc(p.x*tile+10,p.y*tile+10,2,0,2*Math.PI);
+    ctx.fill();
+  });
+
+  microphones.forEach(m=>{
+    ctx.fillStyle="lime";
+    ctx.fillRect(m.x*tile+6,m.y*tile+6,8,8);
+  });
+
+  drawPacman();
   ghosts.forEach(drawGhost);
-  ctx.fillStyle="yellow";
-  ctx.beginPath();
-  ctx.arc(pacman.x*TILE+10,pacman.y*TILE+10,10,0.25*Math.PI,1.75*Math.PI);
-  ctx.lineTo(pacman.x*TILE+10,pacman.y*TILE+10);
-  ctx.fill();
 }
 
-document.getElementById("startBtn").onclick=()=>{
-  audioCtx=new AudioContext();
-  document.getElementById("intro").style.display="none";
-  document.getElementById("startBtn").style.display="none";
-  document.getElementById("gameContainer").style.display="block";
-  resetGame();
-};
+function move(dir){
+  if(gameOver) return;
 
-document.getElementById("resetBtn").onclick=resetGame;
-document.getElementById("soundBtn").onclick=()=>{
-  soundOn=!soundOn;
-  document.getElementById("soundBtn").innerText=soundOn?"🔊":"🔇";
-};
+  let dx=0,dy=0;
+  if(dir==="up")dy=-1;
+  if(dir==="down")dy=1;
+  if(dir==="left")dx=-1;
+  if(dir==="right")dx=1;
+
+  pacman.dir=dir;
+  let nx=pacman.x+dx, ny=pacman.y+dy;
+
+  if(maze[ny][nx]!=="#"){
+    pacman.x=nx; pacman.y=ny;
+    pacman.mouth=!pacman.mouth;
+    playSound(600);
+  }
+
+  pellets = pellets.filter(p=>{
+    if(p.x===pacman.x && p.y===pacman.y){
+      score+=10;
+      document.getElementById("score").textContent=score;
+      return false;
+    }
+    return true;
+  });
+
+  microphones = microphones.filter(m=>{
+    if(m.x===pacman.x && m.y===pacman.y){
+      powerMode=true;
+      ghosts.forEach(g=>g.vulnerable=true);
+      playSound(300);
+      setTimeout(()=>{
+        powerMode=false;
+        ghosts.forEach(g=>g.vulnerable=false);
+      },5000);
+      return false;
+    }
+    return true;
+  });
+
+  ghosts.forEach(g=>{
+    if(g.x===pacman.x && g.y===pacman.y){
+      gameOver=true;
+      alert("😔 Anxiety got the best of you.  Practice overcomes anxiety!");
+      document.getElementById("resetBtn").classList.remove("hidden");
+    }
+  });
+
+  if(pellets.length===0){
+    gameOver=true;
+    alert("You win! 🎉");
+    document.getElementById("resetBtn").classList.remove("hidden");
+  }
+
+  draw();
+}
+
+function resetGame(){
+  location.reload();
+}
+
+draw();
 </script>
+
 </body>
 </html>
